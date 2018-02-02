@@ -27,7 +27,7 @@ open class SwipeTableViewCell: UITableViewCell {
 
     var originalLayoutMargins: UIEdgeInsets = .zero
     
-    lazy var panGestureRecognizer: UIPanGestureRecognizer = {
+    public lazy var panGestureRecognizer: UIPanGestureRecognizer = {
         let gesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(gesture:)))
         gesture.delegate = self
         return gesture
