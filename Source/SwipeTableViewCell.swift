@@ -17,6 +17,11 @@ open class SwipeTableViewCell: UITableViewCell {
     /// The object that acts as the delegate of the `SwipeTableViewCell`.
     public weak var delegate: SwipeTableViewCellDelegate?
 
+    /// If the user swipes faster than this threshold, it will complete the primary action even if the user doesn't swipe far enough
+    /// Default value is nil which means this feature is disabled
+    /// Always enter a positive number. Behavior for negative numbers is undefined.
+    public var velocityThreshold: CGFloat? = nil
+
     var animator: SwipeAnimator?
 
     open var state = SwipeState.center
@@ -183,8 +188,27 @@ open class SwipeTableViewCell: UITableViewCell {
 
             let velocity = gesture.velocity(in: target)
             state = targetState(forVelocity: velocity)
-            
-            if actionsView.expanded == true, let expandedAction = actionsView.expandableAction  {
+
+            // If the user moves fast enough, then perform the last action immediately (without showing the menu)
+            let velocityThresholdReached: Bool
+            if let velocityThreshold = self.velocityThreshold {
+                switch state {
+                // Check left and right separately to ensure that the user is flicking in the right direction
+                case .left:
+                    velocityThresholdReached = velocity.x > velocityThreshold
+                case .right:
+                    velocityThresholdReached = velocity.x < -velocityThreshold
+                default:
+                    velocityThresholdReached = false
+                }
+            } else {
+                // The feature is disabled
+                velocityThresholdReached = false
+            }
+
+            let performAction = actionsView.expanded == true || velocityThresholdReached
+
+            if performAction, let expandedAction = actionsView.expandableAction  {
                 perform(action: expandedAction)
             } else {
                 let targetOffset = targetCenter(active: state.isActive)
