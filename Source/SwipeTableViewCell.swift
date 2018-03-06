@@ -209,6 +209,12 @@ open class SwipeTableViewCell: UITableViewCell {
             let performAction = actionsView.expanded == true || velocityThresholdReached
 
             if performAction, let expandedAction = actionsView.expandableAction  {
+                // Give haptic feedback in this case since we skipped the expanded state
+                if velocityThresholdReached {
+                    actionsView.feedbackGenerator.impactOccurred()
+                    actionsView.feedbackGenerator.prepare()
+                }
+
                 perform(action: expandedAction)
             } else {
                 let targetOffset = targetCenter(active: state.isActive)
