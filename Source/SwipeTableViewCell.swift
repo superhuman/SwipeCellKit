@@ -17,10 +17,9 @@ open class SwipeTableViewCell: UITableViewCell {
     /// The object that acts as the delegate of the `SwipeTableViewCell`.
     public weak var delegate: SwipeTableViewCellDelegate?
 
-    /// If the user swipes faster than this threshold, it will complete the primary action even if the user doesn't swipe far enough
-    /// Default value is nil which means this feature is disabled
-    /// Always enter a positive number. Behavior for negative numbers is undefined.
-    public var velocityThreshold: CGFloat? = nil
+    /// If the user swipes quickly or beyond a certain distance threshold, you may want to force the swipe through gesture
+    /// Every time a pan gesture finishes, this block is called. If this block returns true, it will not open the menu and instead trigger a swipe through animation
+    public var customActionTrigger: ((UIPanGestureRecognizer)->Bool)? = nil
 
     var animator: SwipeAnimator?
 
@@ -189,28 +188,29 @@ open class SwipeTableViewCell: UITableViewCell {
             let velocity = gesture.velocity(in: target)
             state = targetState(forVelocity: velocity)
 
-            // If the user moves fast enough, then perform the last action immediately (without showing the menu)
-            let velocityThresholdReached: Bool
-            if let velocityThreshold = self.velocityThreshold {
+            // If customActionTrigger is true, then perform the last action immediately (without showing the menu)
+            // If it's false, fall back to previous behavior
+            let shouldOverridePerformAction: Bool
+            if let customActionTrigger = self.customActionTrigger {
                 switch state {
                 // Check left and right separately to ensure that the user is flicking in the right direction
                 case .left:
-                    velocityThresholdReached = velocity.x > velocityThreshold
+                    shouldOverridePerformAction = velocity.x > 0 && customActionTrigger(gesture)
                 case .right:
-                    velocityThresholdReached = velocity.x < -velocityThreshold
+                    shouldOverridePerformAction = velocity.x < 0 && customActionTrigger(gesture)
                 default:
-                    velocityThresholdReached = false
+                    shouldOverridePerformAction = false
                 }
             } else {
                 // The feature is disabled
-                velocityThresholdReached = false
+                shouldOverridePerformAction = false
             }
 
-            let performAction = actionsView.expanded == true || velocityThresholdReached
+            let performAction = actionsView.expanded == true || shouldOverridePerformAction
 
             if performAction, let expandedAction = actionsView.expandableAction  {
                 // Give haptic feedback in this case since we skipped the expanded state
-                if velocityThresholdReached {
+                if shouldOverridePerformAction {
                     actionsView.feedbackGenerator.impactOccurred()
                     actionsView.feedbackGenerator.prepare()
                 }
