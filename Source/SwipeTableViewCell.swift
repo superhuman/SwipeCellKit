@@ -19,7 +19,7 @@ open class SwipeTableViewCell: UITableViewCell {
 
     /// If the user swipes quickly or beyond a certain distance threshold, you may want to force the swipe through gesture
     /// Every time a pan gesture finishes, this block is called. If this block returns true, it will not open the menu and instead trigger a swipe through animation
-    public var forceSwipeThroughGesture: ((UIPanGestureRecognizer)->Bool)? = nil
+    public var customActionTrigger: ((UIPanGestureRecognizer)->Bool)? = nil
 
     var animator: SwipeAnimator?
 
@@ -188,28 +188,29 @@ open class SwipeTableViewCell: UITableViewCell {
             let velocity = gesture.velocity(in: target)
             state = targetState(forVelocity: velocity)
 
-            // If the user moves fast enough, then perform the last action immediately (without showing the menu)
-            let forcePerformAction: Bool
-            if let forceSwipeThroughGesture = self.forceSwipeThroughGesture {
+            // If customActionTrigger is true, then perform the last action immediately (without showing the menu)
+            // If it's false, fall back to previous behavior
+            let shouldOverridePerformAction: Bool
+            if let customActionTrigger = self.customActionTrigger {
                 switch state {
                 // Check left and right separately to ensure that the user is flicking in the right direction
                 case .left:
-                    forcePerformAction = velocity.x > 0 && forceSwipeThroughGesture(gesture)
+                    shouldOverridePerformAction = velocity.x > 0 && customActionTrigger(gesture)
                 case .right:
-                    forcePerformAction = velocity.x < 0 && forceSwipeThroughGesture(gesture)
+                    shouldOverridePerformAction = velocity.x < 0 && customActionTrigger(gesture)
                 default:
-                    forcePerformAction = false
+                    shouldOverridePerformAction = false
                 }
             } else {
                 // The feature is disabled
-                forcePerformAction = false
+                shouldOverridePerformAction = false
             }
 
-            let performAction = actionsView.expanded == true || forcePerformAction
+            let performAction = actionsView.expanded == true || shouldOverridePerformAction
 
             if performAction, let expandedAction = actionsView.expandableAction  {
                 // Give haptic feedback in this case since we skipped the expanded state
-                if forcePerformAction {
+                if shouldOverridePerformAction {
                     actionsView.feedbackGenerator.impactOccurred()
                     actionsView.feedbackGenerator.prepare()
                 }
