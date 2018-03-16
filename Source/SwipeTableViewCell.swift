@@ -149,7 +149,8 @@ open class SwipeTableViewCell: UITableViewCell {
             if (translation + originalCenter - bounds.midX) * actionsView.orientation.scale > 0 {
                 target.center.x = gesture.elasticTranslation(in: target,
                                                              withLimit: .zero,
-                                                             fromOriginalCenter: CGPoint(x: originalCenter, y: 0)).x
+                                                             fromOriginalCenter: CGPoint(x: originalCenter, y: 0),
+                                                             swipeToScrollRatio: (actionsView.options.expansionStyle?.swipeToScrollRatio) ?? 1).x
                 scrollRatio = elasticScrollRatio
                 return
             }
@@ -164,11 +165,12 @@ open class SwipeTableViewCell: UITableViewCell {
                     let delta = centerForTranslationToEdge - originalCenter
                     
                     animate(toOffset: centerForTranslationToEdge)
-                    gesture.setTranslation(CGPoint(x: delta, y: 0), in: superview!)
+                    gesture.setTranslation(CGPoint(x: delta / expansionStyle.swipeToScrollRatio, y: 0), in: superview!)
                 } else {
                     target.center.x = gesture.elasticTranslation(in: target,
                                                                  withLimit: CGSize(width: targetOffset, height: 0),
                                                                  fromOriginalCenter: CGPoint(x: originalCenter, y: 0),
+                                                                 swipeToScrollRatio: expansionStyle.swipeToScrollRatio,
                                                                  applyingRatio: expansionStyle.targetOverscrollElasticity).x
                 }
                 
@@ -177,6 +179,7 @@ open class SwipeTableViewCell: UITableViewCell {
                 target.center.x = gesture.elasticTranslation(in: target,
                                                              withLimit: CGSize(width: actionsView.preferredWidth, height: 0),
                                                              fromOriginalCenter: CGPoint(x: originalCenter, y: 0),
+                                                             swipeToScrollRatio: 1,
                                                              applyingRatio: elasticScrollRatio).x
                 if (target.center.x - originalCenter) / translation != 1.0 {
                     scrollRatio = elasticScrollRatio
