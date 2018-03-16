@@ -65,7 +65,7 @@ public struct SwipeExpansionStyle {
     /// This affects how much the cell moves when you swipe
     /// If this value is above 1, the cell will move faster than your finger
     /// If it's less than 1, it will move slower than your finger
-    public var globalScrollRatio: CGFloat = 1
+    public var swipeToScrollRatio: CGFloat = 1
     
     /**
      Contructs a new `SwipeExpansionStyle` instance.
