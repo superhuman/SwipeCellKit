@@ -18,8 +18,15 @@ open class SwipeTableViewCell: UITableViewCell {
     public weak var delegate: SwipeTableViewCellDelegate?
 
     /// If the user swipes quickly or beyond a certain distance threshold, you may want to force the swipe through gesture
-    /// Every time a pan gesture finishes, this block is called. If this block returns true, it will not open the menu and instead trigger a swipe through animation
+    /// Every time a pan gesture finishes, this block is called.
+    /// If this block returns true, it will not open the menu and instead trigger a swipe through animation.
     public var customActionTrigger: ((UIPanGestureRecognizer)->Bool)? = nil
+
+    /// If the user swipes back quickly (as if trying to close the menu), by default, it will trigger a swipe through animation.
+    /// Implement this method if you want to instead base it off some other factor (such as velocity)
+    /// If this block returns true, it will close the swipe cell and not trigger an action
+    /// This is only called if the user is swiping in a close direction
+    public var forceMenuCloseTrigger: ((UIPanGestureRecognizer)->Bool)? = nil
 
     var animator: SwipeAnimator?
 
@@ -209,9 +216,37 @@ open class SwipeTableViewCell: UITableViewCell {
                 shouldOverridePerformAction = false
             }
 
+            let shouldForceCloseMenu: Bool
+            if let forceMenuCloseTrigger = self.forceMenuCloseTrigger {
+                switch state {
+                case .left:
+                    // Only call forceMenuCloseTrigger if the user is swiping in that direction (as if to close the swipe cell)
+                    shouldForceCloseMenu = velocity.x < 0 && forceMenuCloseTrigger(gesture)
+                case .right:
+                    shouldForceCloseMenu = velocity.x > 0 && forceMenuCloseTrigger(gesture)
+                default:
+                    shouldForceCloseMenu = false
+                }
+            } else {
+                shouldForceCloseMenu = false
+            }
+
             let performAction = actionsView.expanded == true || shouldOverridePerformAction
 
-            if performAction, let expandedAction = actionsView.expandableAction  {
+            if shouldForceCloseMenu {
+                // Set active to false and animate back to the start position
+                let targetOffset = targetCenter(active: false)
+                let distance = targetOffset - center.x
+                let normalizedVelocity = velocity.x * scrollRatio / distance
+
+                animate(toOffset: targetOffset, withInitialVelocity: normalizedVelocity) { _ in
+                    if self.state == .center {
+                        self.reset()
+                    }
+                }
+
+                notifyEditingStateChange(active: false)
+            } else if performAction, let expandedAction = actionsView.expandableAction  {
                 // Give haptic feedback in this case since we skipped the expanded state
                 if shouldOverridePerformAction {
                     actionsView.feedbackGenerator.impactOccurred()
