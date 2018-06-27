@@ -32,6 +32,10 @@ open class SwipeTableViewCell: UITableViewCell {
 
     open var state = SwipeState.center
     var originalCenter: CGFloat = 0
+
+    /// we don't call super.setEditing in ThreadTableViewCell since that shows the default edit control
+    /// we instead set this flag and check it to disable swipes when a cell is in edit mode
+    open var pseudoEditing: Bool = false
     
     weak var tableView: UITableView?
     var actionsView: SwipeActionsView?
@@ -126,7 +130,7 @@ open class SwipeTableViewCell: UITableViewCell {
     }
     
     @objc func handlePan(gesture: UIPanGestureRecognizer) {
-        guard isEditing == false else { return }
+        guard isEditing == false && pseudoEditing == false else { return }
         guard let target = gesture.view else { return }
         
         switch gesture.state {
