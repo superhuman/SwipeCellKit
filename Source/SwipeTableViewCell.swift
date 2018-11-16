@@ -235,9 +235,10 @@ open class SwipeTableViewCell: UITableViewCell {
                 shouldForceCloseMenu = false
             }
 
+            let containsOnlyOneAction = self.actionsView?.actions.count ?? 0 == 1
             let performAction = actionsView.expanded == true || shouldOverridePerformAction
 
-            if shouldForceCloseMenu {
+            if shouldForceCloseMenu || (containsOnlyOneAction && !performAction) {
                 // Set active to false and animate back to the start position
                 let targetOffset = targetCenter(active: false)
                 let distance = targetOffset - center.x
