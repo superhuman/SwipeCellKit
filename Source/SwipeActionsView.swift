@@ -104,14 +104,37 @@ class SwipeActionsView: UIView {
     }
     
     func addButtons(for actions: [SwipeAction], withMaximum size: CGSize) -> [SwipeActionButton] {
-        let buttons: [SwipeActionButton] = actions.map({ action in
+        let buttons: [SwipeActionButton] = actions.enumerated().map { (index, action) in
             let actionButton = SwipeActionButton(action: action)
             actionButton.addTarget(self, action: #selector(actionTapped(button:)), for: .touchUpInside)
             actionButton.autoresizingMask = [.flexibleHeight, orientation == .right ? .flexibleRightMargin : .flexibleLeftMargin]
             actionButton.spacing = options.buttonSpacing ?? 8
-            actionButton.contentEdgeInsets = buttonEdgeInsets(fromOptions: options)
+
+            let innerPadding = options.buttonInnerPadding ?? 8
+            let outerPadding = options.buttonOuterPadding ?? 8
+            var leftPadding = innerPadding
+            var rightPadding = innerPadding
+
+            // apply outer padding to the first and last buttons, apply left padding to the first button on left side and right padding to the last button on right side etc.
+            if index == 0 {
+                if orientation == .left {
+                    rightPadding = outerPadding
+                } else if orientation == .right {
+                    leftPadding = outerPadding
+                }
+            }
+
+            if index == actions.count - 1 {
+                if orientation == .left {
+                    leftPadding = outerPadding
+                } else if orientation == .right {
+                    rightPadding = outerPadding
+                }
+            }
+
+            actionButton.contentEdgeInsets = UIEdgeInsets(top: innerPadding, left: leftPadding, bottom: innerPadding, right: rightPadding)
             return actionButton
-        })
+        }
         
         let maximum = options.maximumButtonWidth ?? (size.width - 30) / CGFloat(actions.count)
         minimumButtonWidth = buttons.reduce(options.minimumButtonWidth ?? 74, { initial, next in max(initial, next.preferredWidth(maximum: maximum)) })
@@ -146,11 +169,6 @@ class SwipeActionsView: UIView {
         guard let index = buttons.index(of: button) else { return }
 
         delegate?.swipeActionsView(self, didSelect: actions[index])
-    }
-    
-    func buttonEdgeInsets(fromOptions options: SwipeTableOptions) -> UIEdgeInsets {
-        let padding = options.buttonPadding ?? 8
-        return UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
     }
     
     func setExpanded(expanded: Bool, feedback: Bool = false) {

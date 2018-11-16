@@ -91,8 +91,9 @@ public struct SwipeExpansionStyle {
         guard let actionsView = view.actionsView else { return false }
         
         guard abs(view.frame.minX) >= actionsView.preferredWidth else { return false }
-        
-        if abs(view.frame.minX) >= target.offset(for: view, in: superview, minimumOverscroll: minimumTargetOverscroll) {
+
+        // ceil here so that cell doesn't jump between expanded and collapsed states when it's close to the threshold
+        if ceil(abs(view.frame.minX)) >= target.offset(for: view, in: superview, minimumOverscroll: minimumTargetOverscroll) {
             return true
         }
         

@@ -36,8 +36,11 @@ public struct SwipeTableOptions {
     /// The vertical alignment mode used for when a button image and title are present.
     public var buttonVerticalAlignment: SwipeVerticalAlignment = .centerFirstBaseline
     
-    /// The amount of space, in points, between the border and the button image or title.
-    public var buttonPadding: CGFloat?
+    /// The amount of space, in points, between the border and the button
+    public var buttonOuterPadding: CGFloat?
+
+    /// The amount of space, in points, between buttons and on top and bottom
+    public var buttonInnerPadding: CGFloat?
     
     /// The amount of space, in points, between the button image and the button title.
     public var buttonSpacing: CGFloat?
