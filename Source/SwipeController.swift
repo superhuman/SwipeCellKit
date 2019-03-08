@@ -77,10 +77,6 @@ class SwipeController: NSObject {
         
         switch gesture.state {
         case .began:
-            if let swipeable = scrollView?.swipeables.first(where: { $0.state == .dragging }) as? UIView, swipeable != self.swipeable {
-                return
-            }
-            
             stopAnimatorIfNeeded()
             
             originalCenter = target.center.x
