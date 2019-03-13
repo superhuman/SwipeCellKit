@@ -101,14 +101,19 @@ class SwipeController: NSObject {
             scrollRatio = 1.0
             
             // Check if dragging past the center of the opposite direction of action view, if so
-            // then we need to apply elasticity
+            // then we should show the other side
             if (translation + originalCenter - swipeable.bounds.midX) * actionsView.orientation.scale > 0 {
-                target.center.x = gesture.elasticTranslation(in: target,
-                                                             withLimit: .zero,
-                                                             fromOriginalCenter: CGPoint(x: originalCenter, y: 0),
-                                                             swipeToScrollRatio: (actionsView.options.expansionStyle?.swipeToScrollRatio) ?? 1).x
-                swipeable.actionsView?.visibleWidth = abs((swipeable as Swipeable).frame.minX)
-                scrollRatio = elasticScrollRatio
+                let oppositeSide: SwipeActionsOrientation = velocity.x > 0 ? .left : .right
+                let hasActions = showActionsView(for: oppositeSide)
+                if !hasActions {
+                    // apply elasticity when we have no actions on the other side
+                    target.center.x = gesture.elasticTranslation(in: target,
+                                                                 withLimit: .zero,
+                                                                 fromOriginalCenter: CGPoint(x: originalCenter, y: 0),
+                                                                 swipeToScrollRatio: (actionsView.options.expansionStyle?.swipeToScrollRatio) ?? 1).x
+                    swipeable.actionsView?.visibleWidth = abs((swipeable as Swipeable).frame.minX)
+                    scrollRatio = elasticScrollRatio
+                }
                 return
             }
             
