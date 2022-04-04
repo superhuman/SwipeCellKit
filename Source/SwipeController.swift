@@ -35,7 +35,13 @@ class SwipeController: NSObject {
     weak var scrollView: UIScrollView?
     
     var animator: SwipeAnimator?
-    
+
+    /// A reference to the action we are currently performing.
+    var performingAction: SwipeAction?
+
+    /// If we are performing a swipe with fill options, then we include those fill options here.
+    var performingFillOption: SwipeExpansionStyle.FillOptions?
+
     let elasticScrollRatio: CGFloat = 0.4
     
     var originalCenter: CGFloat = 0
@@ -357,7 +363,7 @@ class SwipeController: NSObject {
         }        
     }
     
-    func stopAnimatorIfNeeded() {
+    private func stopAnimatorIfNeeded() {
         if animator?.isRunning == true {
             animator?.stopAnimation(true)
         }
@@ -395,12 +401,35 @@ class SwipeController: NSObject {
         swipeable?.addGestureRecognizer(tapGestureRecognizer)
         swipeable?.addGestureRecognizer(panGestureRecognizer)
     }
-    
+
+    /// Call this to invoke the current action. Due ot animation quirks with UIKit and UIViewAnimating, we may need to invoke
+    /// actions from multiple places to ensure that an action handler is called even when the animations for swiping cells gets
+    /// interrupted. This function is defined to be idempotent, so anytime we perform an action, we invoke that action
+    /// at most once.
+    private func idempotentInvokeAction() {
+        guard let indexPath = self.swipeable?.indexPath,
+              let action = self.performingAction else {
+            return
+        }
+
+        action.handler?(action, indexPath)
+
+        if let style = self.performingFillOption?.autoFulFillmentStyle {
+            action.fulfill(with: style)
+        }
+
+        self.performingAction = nil
+        self.performingFillOption = nil
+    }
+
     func reset() {
         swipeable?.state = .center
         
         swipeable?.actionsView?.removeFromSuperview()
         swipeable?.actionsView = nil
+
+        self.performingAction = nil
+        self.performingFillOption = nil
     }
     
 }
@@ -437,9 +466,11 @@ extension SwipeController: SwipeActionsViewDelegate {
         perform(action: action)
     }
     
-    func perform(action: SwipeAction) {
+    private func perform(action: SwipeAction) {
         guard let actionsView = swipeable?.actionsView else { return }
-        
+
+        self.performingAction = action
+
         if action == actionsView.expandableAction, let expansionStyle = actionsView.options.expansionStyle {
             // Trigger the expansion (may already be expanded from drag)
             actionsView.setExpanded(expanded: true)
@@ -448,6 +479,7 @@ extension SwipeController: SwipeActionsViewDelegate {
             case .bounce:
                 perform(action: action, hide: true)
             case .fill(let fillOption):
+                self.performingFillOption = fillOption
                 performFillAction(action: action, fillOption: fillOption)
             }
         } else {
@@ -455,7 +487,7 @@ extension SwipeController: SwipeActionsViewDelegate {
         }
     }
     
-    func perform(action: SwipeAction, hide: Bool) {
+    private func perform(action: SwipeAction, hide: Bool) {
         guard let indexPath = swipeable?.indexPath else { return }
 
         if hide {
@@ -465,7 +497,7 @@ extension SwipeController: SwipeActionsViewDelegate {
         action.handler?(action, indexPath)
     }
     
-    func performFillAction(action: SwipeAction, fillOption: SwipeExpansionStyle.FillOptions) {
+    private func performFillAction(action: SwipeAction, fillOption: SwipeExpansionStyle.FillOptions) {
         guard let swipeable = self.swipeable, let actionsContainerView = self.actionsContainerView else { return }
         guard let actionsView = swipeable.actionsView, let indexPath = swipeable.indexPath else { return }
 
@@ -503,22 +535,14 @@ extension SwipeController: SwipeActionsViewDelegate {
             }
         }
         
-        let invokeAction = {
-            action.handler?(action, indexPath)
-            
-            if let style = fillOption.autoFulFillmentStyle {
-                action.fulfill(with: style)
-            }
-        }
-        
         animate(duration: 0.3, toOffset: newCenter) { _ in
             if fillOption.timing == .after {
-                invokeAction()
+                self.idempotentInvokeAction()
             }
         }
         
         if fillOption.timing == .with {
-            invokeAction()
+            self.idempotentInvokeAction()
         }
     }
     
@@ -533,10 +557,18 @@ extension SwipeController: SwipeActionsViewDelegate {
         
         if animated {
             animate(toOffset: targetCenter) { complete in
+                if self.performingFillOption?.timing == .after {
+                    self.idempotentInvokeAction()
+                }
                 self.reset()
                 completion?(complete)
             }
+
+            if self.performingFillOption?.timing == .with {
+                self.idempotentInvokeAction()
+            }
         } else {
+            self.idempotentInvokeAction()
             actionsContainerView.center = CGPoint(x: targetCenter, y: actionsContainerView.center.y)
             swipeable.actionsView?.visibleWidth = abs(actionsContainerView.frame.minX)
             reset()
