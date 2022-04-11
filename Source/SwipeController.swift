@@ -412,14 +412,16 @@ class SwipeController: NSObject {
             return
         }
 
-        action.handler?(action, indexPath)
-
-        if let style = self.performingFillOption?.autoFulFillmentStyle {
-            action.fulfill(with: style)
-        }
+        let fillOption = self.performingFillOption
 
         self.performingAction = nil
         self.performingFillOption = nil
+
+        action.handler?(action, indexPath)
+
+        if let style = fillOption?.autoFulFillmentStyle {
+            action.fulfill(with: style)
+        }
     }
 
     func reset() {
