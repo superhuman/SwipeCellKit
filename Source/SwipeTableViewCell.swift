@@ -7,6 +7,31 @@
 
 import UIKit
 
+/// The layer for a `SwipeTableViewCell`, which declines clipping while the cell is swiped.
+///
+/// The actions view is drawn outside the cell's bounds — which is why the cell sets
+/// `clipsToBounds = false` — so clipping hides the entire swipe. `UITableView` turns clipping
+/// on for the length of a row deletion animation and restores it afterwards, which clips a
+/// swipe-through's fill away one frame after the row goes: the cell, the actions view, their
+/// frames, their colors and the swipe state all stay exactly as they were, so it reads as the
+/// animation being cut short for no reason.
+///
+/// It sets this on the layer rather than through `UIView.clipsToBounds`, so overriding that on
+/// the cell never sees it. This is the level that can decline.
+class SwipeCellLayer: CALayer {
+    override var masksToBounds: Bool {
+        get { return super.masksToBounds }
+        set {
+            guard let cell = delegate as? SwipeTableViewCell, cell.state.isActive else {
+                super.masksToBounds = newValue
+                return
+            }
+
+            super.masksToBounds = false
+        }
+    }
+}
+
 /**
  The `SwipeTableViewCell` class extends `UITableViewCell` and provides more flexible options for cell swiping behavior.
  
@@ -53,6 +78,11 @@ open class SwipeTableViewCell: UITableViewCell {
     
     weak var tableView: UITableView?
     
+    /// :nodoc:
+    open override class var layerClass: AnyClass {
+        return SwipeCellLayer.self
+    }
+
     /// :nodoc:
     open override var frame: CGRect {
         set { super.frame = state.isActive ? CGRect(origin: CGPoint(x: frame.minX, y: newValue.minY), size: newValue.size) : newValue }
