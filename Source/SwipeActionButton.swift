@@ -7,13 +7,23 @@
 
 import UIKit
 
-class SwipeActionButton: UIButton {
+public protocol SwipeActionContentInsetsProviding: AnyObject {
+    var swipeActionContentInsets: UIEdgeInsets { get set }
+}
+
+class SwipeActionButton: UIButton, SwipeActionContentInsetsProviding {
     var spacing: CGFloat = 8
     var shouldHighlight = true
     var highlightedBackgroundColor: UIColor?
 
     var maximumImageHeight: CGFloat = 0
     var verticalAlignment: SwipeVerticalAlignment = .centerFirstBaseline
+    var swipeActionContentInsets = UIEdgeInsets.zero {
+        didSet {
+            setNeedsLayout()
+            invalidateIntrinsicContentSize()
+        }
+    }
     
     
     var currentSpacing: CGFloat {
@@ -35,7 +45,11 @@ class SwipeActionButton: UIButton {
     }
     
     override var intrinsicContentSize: CGSize {
-        return CGSize(width: UIView.noIntrinsicMetric, height: contentEdgeInsets.top + alignmentRect.height + contentEdgeInsets.bottom)
+        return CGSize(width: UIView.noIntrinsicMetric, height: swipeActionContentInsets.top + alignmentRect.height + swipeActionContentInsets.bottom)
+    }
+
+    override func contentRect(forBounds bounds: CGRect) -> CGRect {
+        return bounds.inset(by: swipeActionContentInsets)
     }
     
     convenience init(action: SwipeAction) {
@@ -74,7 +88,7 @@ class SwipeActionButton: UIButton {
         let textWidth = titleBoundingRect(with: CGSize(width: width, height: CGFloat.greatestFiniteMagnitude)).width
         let imageWidth = currentImage?.size.width ?? 0
         
-        return min(width, max(textWidth, imageWidth) + contentEdgeInsets.left + contentEdgeInsets.right)
+        return min(width, max(textWidth, imageWidth) + swipeActionContentInsets.left + swipeActionContentInsets.right)
     }
     
     func titleBoundingRect(with size: CGSize) -> CGRect {

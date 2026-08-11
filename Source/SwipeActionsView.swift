@@ -167,7 +167,7 @@ class SwipeActionsView: UIView {
                 }
             }
 
-            actionButton.contentEdgeInsets = UIEdgeInsets(top: innerPadding, left: leftPadding, bottom: innerPadding, right: rightPadding)
+            actionButton.swipeActionContentInsets = UIEdgeInsets(top: innerPadding, left: leftPadding, bottom: innerPadding, right: rightPadding)
             return actionButton
         }
         
